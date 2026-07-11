@@ -1,0 +1,23 @@
+### Health
+GET http://localhost:8080/v1/health
+
+### Login (admin)
+# @name login
+POST http://localhost:8080/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@demo.com",
+  "password": "admin123"
+}
+
+### POS Menu (replace TOKEN)
+GET http://localhost:8080/v1/pos/menu
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Public menu (replace QR_TOKEN from seed output)
+GET http://localhost:8080/v1/public/menu?token=QR_TOKEN
+
+### Daily report
+GET http://localhost:8080/v1/admin/reports/daily
+Authorization: Bearer {{login.response.body.accessToken}}

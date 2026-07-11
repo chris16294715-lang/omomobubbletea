@@ -1,0 +1,37 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f7f3ee;
+  --card: #ffffff;
+  --primary: #8b5a2b;
+  --primary-dark: #6d4520;
+  --accent: #c9956b;
+  --text: #2f2419;
+  --muted: #8a7b6d;
+  --border: #eadfce;
+  --error: #c0392b;
+  --shadow: 0 24px 60px rgba(74, 45, 18, 0.12);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button,
+input {
+  font: inherit;
+}
