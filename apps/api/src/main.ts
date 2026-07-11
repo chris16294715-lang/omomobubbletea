@@ -3,11 +3,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import mongoose from 'mongoose';
 import { AppModule } from './app.module';
+import { maskMongoUri, sanitizeMongoUri } from './common/config/mongo-uri';
 
 async function connectMongo(config: ConfigService) {
-  const uri = config.get<string>('MONGODB_URI');
+  const raw = config.get<string>('MONGODB_URI');
+  const uri = sanitizeMongoUri(raw);
+
   if (!uri) {
-    console.warn('MONGODB_URI is not set. API will start but database features are disabled.');
+    if (raw?.trim()) {
+      console.error(
+        'MONGODB_URI is invalid. Fix Cloud Run env var — it must start with mongodb:// or mongodb+srv:// and must not include quotes.',
+      );
+      console.error(`Received (first 60 chars): ${raw.slice(0, 60)}`);
+    } else {
+      console.warn('MONGODB_URI is not set. Database features are disabled.');
+    }
     return;
   }
 
@@ -16,7 +26,7 @@ async function connectMongo(config: ConfigService) {
       serverSelectionTimeoutMS: 15000,
       connectTimeoutMS: 15000,
     });
-    console.log('MongoDB connected');
+    console.log(`MongoDB connected (${maskMongoUri(uri)})`);
   } catch (err) {
     console.error('MongoDB connection failed:', err instanceof Error ? err.message : err);
   }
