@@ -20,12 +20,13 @@ import { AppController } from './app.controller';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const uri = config.get<string>('MONGODB_URI');
-        if (!uri) {
-          throw new Error('MONGODB_URI environment variable is required');
-        }
+        const uri =
+          config.get<string>('MONGODB_URI') ||
+          'mongodb://127.0.0.1:27017/milktea?directConnection=true';
+
         return {
           uri,
+          lazyConnection: true,
           serverSelectionTimeoutMS: 15000,
           connectTimeoutMS: 15000,
         };
