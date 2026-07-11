@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { existsSync } from 'fs';
+import { join } from 'path';
 import mongoose from 'mongoose';
 import { AppModule } from './app.module';
 import { maskMongoUri, sanitizeMongoUri } from './common/config/mongo-uri';
@@ -33,11 +36,15 @@ async function connectMongo(config: ConfigService) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('v1', {
-    exclude: [{ path: '/', method: RequestMethod.GET }],
+    exclude: [
+      { path: '/', method: RequestMethod.GET },
+      { path: 'login', method: RequestMethod.GET },
+      { path: 'home', method: RequestMethod.GET },
+    ],
   });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -52,6 +59,12 @@ async function bootstrap() {
     origin: corsOrigins === '*' ? true : corsOrigins.split(',').map((o) => o.trim()),
     credentials: true,
   });
+
+  const publicPath = join(__dirname, '..', 'public');
+  if (existsSync(join(publicPath, 'index.html'))) {
+    app.useStaticAssets(publicPath);
+    console.log('Serving admin web static assets from /public');
+  }
 
   const port = Number(process.env.PORT ?? config.get('PORT') ?? 8080);
   await app.listen(port, '0.0.0.0');

@@ -9,6 +9,7 @@ import { PublicModule } from './modules/public/public.module';
 import { ReportModule } from './modules/report/report.module';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { AppController } from './app.controller';
+import { SpaController } from './spa.controller';
 import { sanitizeMongoUri } from './common/config/mongo-uri';
 
 const LOCAL_MONGO_URI = 'mongodb://127.0.0.1:27017/milktea?directConnection=true';
@@ -55,6 +56,6 @@ const LOCAL_MONGO_URI = 'mongodb://127.0.0.1:27017/milktea?directConnection=true
     PublicModule,
     ReportModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, SpaController],
 })
 export class AppModule {}

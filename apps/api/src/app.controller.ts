@@ -3,17 +3,6 @@ import { connection } from 'mongoose';
 
 @Controller()
 export class AppController {
-  @Get()
-  root() {
-    return {
-      service: 'milk-tea-api',
-      status: 'running',
-      health: '/v1/health',
-      login: 'POST /v1/auth/login',
-      message: 'Bubble Tea SaaS API — use /v1/* endpoints',
-    };
-  }
-
   @Get('health')
   health() {
     const dbReadyState = connection.readyState;
