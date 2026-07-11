@@ -22,9 +22,12 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = config.get<number>('PORT', 8080);
-  await app.listen(port);
-  console.log(`API running on http://localhost:${port}/v1`);
+  const port = Number(process.env.PORT ?? config.get('PORT') ?? 8080);
+  await app.listen(port, '0.0.0.0');
+  console.log(`API running on http://0.0.0.0:${port}/v1`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});

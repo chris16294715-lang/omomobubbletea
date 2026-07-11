@@ -78,18 +78,24 @@ Atlas 需将部署服务器 IP 加入 Network Access 白名单。
 
 仓库根目录已包含 **`Dockerfile`**（Cloud Build 默认从此处构建）。
 
-Cloud Run 环境变量：
+Cloud Run 环境变量（**必须在控制台配置，否则容器无法启动**）：
 
-| 变量名 | 说明 |
-|--------|------|
-| `MONGODB_URI` | MongoDB Atlas 连接串 |
-| `JWT_SECRET` | JWT 签名密钥 |
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `MONGODB_URI` | ✅ | MongoDB Atlas 连接串 |
+| `JWT_SECRET` | ✅ | JWT 密钥 |
+| `CORS_ORIGINS` | 可选 | 默认 `*` |
+| `PORT` | 自动 | Cloud Run 自动注入，无需手动设置 |
+
+参考模板：`cloud-run.env.example`
 
 ```bash
 # 本地验证根目录 Dockerfile
 docker build -t omomobubbletea-api .
 docker run -p 8080:8080 --env-file .env omomobubbletea-api
 ```
+
+**Atlas 网络**：Cloud Run 出口 IP 不固定，需在 Atlas → Network Access 添加 `0.0.0.0/0`（或配置 VPC Connector）。
 
 ## 项目结构
 

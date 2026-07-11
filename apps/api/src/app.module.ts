@@ -14,13 +14,22 @@ import { AppController } from './app.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
       envFilePath: [join(__dirname, '../../../.env'), join(__dirname, '../.env'), '.env'],
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI'),
-      }),
+      useFactory: (config: ConfigService) => {
+        const uri = config.get<string>('MONGODB_URI');
+        if (!uri) {
+          throw new Error('MONGODB_URI environment variable is required');
+        }
+        return {
+          uri,
+          serverSelectionTimeoutMS: 15000,
+          connectTimeoutMS: 15000,
+        };
+      },
     }),
     TenantModule,
     AuthModule,
