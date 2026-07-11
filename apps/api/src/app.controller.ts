@@ -13,6 +13,7 @@ export class AppController {
       status: 'ok',
       service: 'milk-tea-api',
       db: dbStatus,
+      dbName: connection.db?.databaseName ?? 'unknown',
       timestamp: new Date().toISOString(),
     };
   }
