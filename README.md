@@ -76,26 +76,26 @@ Atlas 需将部署服务器 IP 加入 Network Access 白名单。
 
 ## 部署到 Google Cloud Run
 
+仓库根目录已包含 **`Dockerfile`**（Cloud Build 默认从此处构建）。
+
+Cloud Run 环境变量：
+
+| 变量名 | 说明 |
+|--------|------|
+| `MONGODB_URI` | MongoDB Atlas 连接串 |
+| `JWT_SECRET` | JWT 签名密钥 |
+
 ```bash
-# 构建镜像
-docker build -t REGION-docker.pkg.dev/PROJECT_ID/milktea/api:latest ./apps/api
-
-# 推送
-docker push REGION-docker.pkg.dev/PROJECT_ID/milktea/api:latest
-
-# 部署
-gcloud run deploy milktea-api \
-  --image REGION-docker.pkg.dev/PROJECT_ID/milktea/api:latest \
-  --region asia-east1 \
-  --set-env-vars MONGODB_URI="mongodb+srv://..." \
-  --set-env-vars JWT_SECRET="your-secret" \
-  --allow-unauthenticated
+# 本地验证根目录 Dockerfile
+docker build -t omomobubbletea-api .
+docker run -p 8080:8080 --env-file .env omomobubbletea-api
 ```
 
 ## 项目结构
 
 ```
 milk-tea-saas/
+├── Dockerfile         # Cloud Build / Cloud Run 入口
 ├── apps/api/          # NestJS 后端
 │   ├── src/
 │   │   ├── modules/   # auth, menu, order, public, report, tenant

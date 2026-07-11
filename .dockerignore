@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+.git
+apps/admin-web/node_modules
+apps/api/node_modules
+apps/api/dist
+*.log
