@@ -83,8 +83,8 @@ export class MenuPosController {
 
   @Get()
   @Roles('cashier', 'manager', 'tenant_admin')
-  list(@CurrentUser() user: JwtPayload, @Query('storeId') storeId?: string) {
+  list(@CurrentUser() user: JwtPayload, @Query('storeId') storeId?: string, @Query('lang') lang?: string) {
     const sid = storeId ?? user.storeIds[0];
-    return this.menuService.getPublicMenu(user.tenantId, sid);
+    return this.menuService.getPublicMenu(user.tenantId, sid, lang === 'en' ? 'en' : 'zh');
   }
 }

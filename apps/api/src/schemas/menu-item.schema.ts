@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { I18nText, I18nTextSchema } from './i18n.schema';
 
 export type MenuItemDocument = HydratedDocument<MenuItem>;
 
@@ -35,11 +36,11 @@ export class MenuItem {
   @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
   categoryId: Types.ObjectId;
 
-  @Prop({ required: true })
-  name: string;
+  @Prop({ type: I18nTextSchema, required: true })
+  name: I18nText;
 
-  @Prop()
-  description?: string;
+  @Prop({ type: I18nTextSchema })
+  description?: I18nText;
 
   @Prop()
   imageUrl?: string;

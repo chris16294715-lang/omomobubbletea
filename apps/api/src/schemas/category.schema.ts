@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { I18nText, I18nTextSchema } from './i18n.schema';
 
 export type CategoryDocument = HydratedDocument<Category>;
 
@@ -11,8 +12,8 @@ export class Category {
   @Prop({ type: Types.ObjectId, ref: 'Store', index: true })
   storeId?: Types.ObjectId;
 
-  @Prop({ required: true })
-  name: string;
+  @Prop({ type: I18nTextSchema, required: true })
+  name: I18nText;
 
   @Prop({ default: 0 })
   sort: number;

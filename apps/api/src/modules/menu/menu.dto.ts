@@ -1,9 +1,20 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
-export class CreateCategoryDto {
+export class I18nTextDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  zh: string;
+
+  @IsString()
+  @IsNotEmpty()
+  en: string;
+}
+
+export class CreateCategoryDto {
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  name: I18nTextDto;
 
   @IsOptional()
   @IsString()
@@ -16,8 +27,9 @@ export class CreateCategoryDto {
 
 export class UpdateCategoryDto {
   @IsOptional()
-  @IsString()
-  name?: string;
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  name?: I18nTextDto;
 
   @IsOptional()
   @IsNumber()
@@ -36,12 +48,14 @@ export class CreateMenuItemDto {
   @IsString()
   storeId?: string;
 
-  @IsString()
-  name: string;
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  name: I18nTextDto;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  description?: I18nTextDto;
 
   @IsNumber()
   basePrice: number;
@@ -63,12 +77,14 @@ export class UpdateMenuItemDto {
   categoryId?: string;
 
   @IsOptional()
-  @IsString()
-  name?: string;
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  name?: I18nTextDto;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @ValidateNested()
+  @Type(() => I18nTextDto)
+  description?: I18nTextDto;
 
   @IsOptional()
   @IsNumber()

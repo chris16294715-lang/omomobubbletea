@@ -7,8 +7,9 @@ export class PublicController {
   constructor(private publicService: PublicService) {}
 
   @Get('menu')
-  getMenu(@Query('token') token: string) {
-    return this.publicService.getMenuByToken(token);
+  getMenu(@Query('token') token: string, @Query('lang') lang?: string) {
+    const locale = lang === 'en' ? 'en' : 'zh';
+    return this.publicService.getMenuByToken(token, locale);
   }
 
   @Post('orders')

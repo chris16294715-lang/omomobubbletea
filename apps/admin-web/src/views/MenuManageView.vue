@@ -14,8 +14,11 @@
         <ul v-else class="category-list">
           <li v-for="cat in categories" :key="cat._id" :class="{ inactive: !cat.isActive }">
             <div>
-              <strong>{{ cat.name }}</strong>
-              <small>排序 {{ cat.sort }} · {{ cat.isActive ? '启用' : '已停用' }}</small>
+              <strong>{{ formatI18n(cat.name) }}</strong>
+              <small>
+                中文：{{ cat.name.zh }} · English：{{ cat.name.en }}
+                · 排序 {{ cat.sort }} · {{ cat.isActive ? '启用' : '已停用' }}
+              </small>
             </div>
             <div class="actions">
               <button class="btn ghost" @click="openCategoryForm(cat)">编辑</button>
@@ -40,7 +43,7 @@
             <select v-model="filterCategoryId">
               <option value="">全部分类</option>
               <option v-for="cat in activeCategories" :key="cat._id" :value="cat._id">
-                {{ cat.name }}
+                {{ formatI18n(cat.name) }}
               </option>
             </select>
           </label>
@@ -53,10 +56,10 @@
             <ul class="item-list">
               <li v-for="item in group.items" :key="item._id" :class="{ inactive: !item.isAvailable }">
                 <div>
-                  <strong>{{ item.name }}</strong>
+                  <strong>{{ formatI18n(item.name) }}</strong>
                   <small>
                     ¥{{ formatPrice(item.basePrice) }}
-                    <span v-if="item.description"> · {{ item.description }}</span>
+                    <span v-if="item.description"> · {{ formatI18n(item.description) }}</span>
                     · {{ item.isAvailable ? '上架' : '下架' }}
                   </small>
                 </div>
@@ -91,8 +94,12 @@
         <h3>{{ categoryForm.id ? '编辑分类' : '添加分类' }}</h3>
         <form @submit.prevent="saveCategory">
           <label>
-            分类名称
-            <input v-model="categoryForm.name" required placeholder="例如：经典奶茶" />
+            分类名称（中文）
+            <input v-model="categoryForm.nameZh" required placeholder="例如：经典奶茶" />
+          </label>
+          <label>
+            Category name (English)
+            <input v-model="categoryForm.nameEn" required placeholder="e.g. Classic Milk Tea" />
           </label>
           <label>
             排序（数字越小越靠前）
@@ -115,17 +122,25 @@
             所属分类
             <select v-model="itemForm.categoryId" required>
               <option v-for="cat in activeCategories" :key="cat._id" :value="cat._id">
-                {{ cat.name }}
+                {{ formatI18n(cat.name) }}
               </option>
             </select>
           </label>
           <label>
-            菜品名称
-            <input v-model="itemForm.name" required placeholder="例如：珍珠奶茶" />
+            菜品名称（中文）
+            <input v-model="itemForm.nameZh" required placeholder="例如：珍珠奶茶" />
           </label>
           <label>
-            描述（可选）
-            <input v-model="itemForm.description" placeholder="简短描述" />
+            Item name (English)
+            <input v-model="itemForm.nameEn" required placeholder="e.g. Bubble Milk Tea" />
+          </label>
+          <label>
+            描述（中文，可选）
+            <input v-model="itemForm.descriptionZh" placeholder="简短描述" />
+          </label>
+          <label>
+            Description (English, optional)
+            <input v-model="itemForm.descriptionEn" placeholder="Short description" />
           </label>
           <label>
             价格（元）
@@ -155,6 +170,7 @@ import {
   createMenuItem,
   deleteCategory,
   deleteMenuItem,
+  formatI18n,
   formatPrice,
   listCategories,
   listMenuItems,
@@ -162,6 +178,19 @@ import {
   updateCategory,
   updateMenuItem,
 } from '../api/menu';
+
+function categoryIdOf(item: MenuItem) {
+  return String(item.categoryId);
+}
+
+function normalizeI18nField(value: unknown, fallback = ''): { zh: string; en: string } {
+  if (value && typeof value === 'object' && 'zh' in value && 'en' in value) {
+    const v = value as { zh: string; en: string };
+    return { zh: v.zh || fallback, en: v.en || fallback };
+  }
+  if (typeof value === 'string') return { zh: value, en: value };
+  return { zh: fallback, en: fallback };
+}
 
 const loading = ref(true);
 const saving = ref(false);
@@ -173,7 +202,8 @@ const filterCategoryId = ref('');
 const categoryForm = reactive({
   open: false,
   id: '',
-  name: '',
+  nameZh: '',
+  nameEn: '',
   sort: 0,
 });
 
@@ -181,8 +211,10 @@ const itemForm = reactive({
   open: false,
   id: '',
   categoryId: '',
-  name: '',
-  description: '',
+  nameZh: '',
+  nameEn: '',
+  descriptionZh: '',
+  descriptionEn: '',
   priceYuan: '12.00',
   isAvailable: true,
 });
@@ -191,19 +223,20 @@ const activeCategories = computed(() => categories.value.filter((c) => c.isActiv
 
 const filteredItems = computed(() => {
   if (!filterCategoryId.value) return items.value;
-  return items.value.filter((i) => i.categoryId === filterCategoryId.value);
+  return items.value.filter((i) => categoryIdOf(i) === filterCategoryId.value);
 });
 
 const groupedItems = computed(() => {
   const map = new Map<string, { categoryId: string; categoryName: string; items: MenuItem[] }>();
 
   for (const item of filteredItems.value) {
-    const cat = categories.value.find((c) => c._id === item.categoryId);
-    const categoryName = cat?.name ?? '未分类';
-    if (!map.has(item.categoryId)) {
-      map.set(item.categoryId, { categoryId: item.categoryId, categoryName, items: [] });
+    const cid = categoryIdOf(item);
+    const cat = categories.value.find((c) => c._id === cid);
+    const categoryName = cat ? formatI18n(cat.name) : '未分类';
+    if (!map.has(cid)) {
+      map.set(cid, { categoryId: cid, categoryName, items: [] });
     }
-    map.get(item.categoryId)!.items.push(item);
+    map.get(cid)!.items.push(item);
   }
 
   return Array.from(map.values());
@@ -213,7 +246,17 @@ async function loadData() {
   loading.value = true;
   error.value = '';
   try {
-    [categories.value, items.value] = await Promise.all([listCategories(), listMenuItems()]);
+    const [cats, menuItems] = await Promise.all([listCategories(), listMenuItems()]);
+    categories.value = cats.map((cat) => ({
+      ...cat,
+      name: normalizeI18nField(cat.name),
+    }));
+    items.value = menuItems.map((item) => ({
+      ...item,
+      categoryId: categoryIdOf(item),
+      name: normalizeI18nField(item.name),
+      description: item.description ? normalizeI18nField(item.description) : undefined,
+    }));
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败';
   } finally {
@@ -224,21 +267,20 @@ async function loadData() {
 function openCategoryForm(cat?: Category) {
   categoryForm.open = true;
   categoryForm.id = cat?._id ?? '';
-  categoryForm.name = cat?.name ?? '';
+  categoryForm.nameZh = cat?.name.zh ?? '';
+  categoryForm.nameEn = cat?.name.en ?? '';
   categoryForm.sort = cat?.sort ?? 0;
 }
 
 async function saveCategory() {
   saving.value = true;
   error.value = '';
+  const name = { zh: categoryForm.nameZh.trim(), en: categoryForm.nameEn.trim() };
   try {
     if (categoryForm.id) {
-      await updateCategory(categoryForm.id, {
-        name: categoryForm.name.trim(),
-        sort: categoryForm.sort,
-      });
+      await updateCategory(categoryForm.id, { name, sort: categoryForm.sort });
     } else {
-      await createCategory(categoryForm.name.trim(), categoryForm.sort);
+      await createCategory(name, categoryForm.sort);
     }
     categoryForm.open = false;
     await loadData();
@@ -250,7 +292,7 @@ async function saveCategory() {
 }
 
 async function removeCategory(cat: Category) {
-  if (!confirm(`确定删除分类「${cat.name}」？该分类下的菜品也会下架。`)) return;
+  if (!confirm(`确定删除分类「${formatI18n(cat.name)}」？该分类下的菜品也会下架。`)) return;
   error.value = '';
   try {
     await deleteCategory(cat._id);
@@ -273,9 +315,11 @@ async function restoreCategory(cat: Category) {
 function openItemForm(item?: MenuItem) {
   itemForm.open = true;
   itemForm.id = item?._id ?? '';
-  itemForm.categoryId = item?.categoryId ?? activeCategories.value[0]?._id ?? '';
-  itemForm.name = item?.name ?? '';
-  itemForm.description = item?.description ?? '';
+  itemForm.categoryId = item ? categoryIdOf(item) : activeCategories.value[0]?._id ?? '';
+  itemForm.nameZh = item?.name.zh ?? '';
+  itemForm.nameEn = item?.name.en ?? '';
+  itemForm.descriptionZh = item?.description?.zh ?? '';
+  itemForm.descriptionEn = item?.description?.en ?? '';
   itemForm.priceYuan = item ? formatPrice(item.basePrice) : '12.00';
   itemForm.isAvailable = item?.isAvailable ?? true;
 }
@@ -284,10 +328,18 @@ async function saveItem() {
   saving.value = true;
   error.value = '';
   try {
+    const name = { zh: itemForm.nameZh.trim(), en: itemForm.nameEn.trim() };
+    const description =
+      itemForm.descriptionZh.trim() || itemForm.descriptionEn.trim()
+        ? {
+            zh: itemForm.descriptionZh.trim(),
+            en: itemForm.descriptionEn.trim(),
+          }
+        : undefined;
     const payload = {
       categoryId: itemForm.categoryId,
-      name: itemForm.name.trim(),
-      description: itemForm.description.trim() || undefined,
+      name,
+      description,
       basePrice: parsePrice(itemForm.priceYuan),
       isAvailable: itemForm.isAvailable,
     };
@@ -306,7 +358,7 @@ async function saveItem() {
 }
 
 async function removeItem(item: MenuItem) {
-  if (!confirm(`确定永久删除菜品「${item.name}」？删除后不可恢复。`)) return;
+  if (!confirm(`确定永久删除菜品「${formatI18n(item.name)}」？删除后不可恢复。`)) return;
   error.value = '';
   try {
     await deleteMenuItem(item._id);

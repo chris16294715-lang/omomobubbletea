@@ -67,7 +67,7 @@ async function seed() {
   const category = await categoryModel.create({
     tenantId: tenant._id,
     storeId: store._id,
-    name: '经典奶茶',
+    name: { zh: '经典奶茶', en: 'Classic Milk Tea' },
     sort: 1,
   });
 
@@ -75,8 +75,8 @@ async function seed() {
     tenantId: tenant._id,
     storeId: store._id,
     categoryId: category._id,
-    name: '珍珠奶茶',
-    description: '经典口味',
+    name: { zh: '珍珠奶茶', en: 'Bubble Milk Tea' },
+    description: { zh: '经典口味', en: 'Classic flavor' },
     basePrice: 1200,
     specs: [
       { name: '中杯', priceDelta: 0 },

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Category, CategoryDocument } from '../../schemas/category.schema';
 import { MenuItem, MenuItemDocument } from '../../schemas/menu-item.schema';
+import { normalizeI18n, pickI18n } from '../../schemas/i18n.schema';
 import { CreateCategoryDto, CreateMenuItemDto, UpdateCategoryDto, UpdateMenuItemDto } from './menu.dto';
 
 @Injectable()
@@ -12,7 +13,30 @@ export class MenuService {
     @InjectModel(MenuItem.name) private menuItemModel: Model<MenuItemDocument>,
   ) {}
 
-  listCategories(tenantId: string, storeId?: string, includeInactive = false) {
+  private normalizeCategory<T extends Record<string, unknown>>(cat: T) {
+    return { ...cat, name: normalizeI18n(cat.name) };
+  }
+
+  private normalizeItem<T extends Record<string, unknown>>(item: T) {
+    return {
+      ...item,
+      name: normalizeI18n(item.name),
+      description: item.description ? normalizeI18n(item.description) : undefined,
+    };
+  }
+
+  private withDisplayName<T extends { name: unknown; description?: unknown }>(
+    row: T,
+    lang: 'zh' | 'en',
+  ) {
+    return {
+      ...row,
+      displayName: pickI18n(row.name, lang),
+      displayDescription: row.description ? pickI18n(row.description, lang) : undefined,
+    };
+  }
+
+  async listCategories(tenantId: string, storeId?: string, includeInactive = false) {
     const filter: Record<string, unknown> = {
       tenantId: new Types.ObjectId(tenantId),
     };
@@ -20,7 +44,8 @@ export class MenuService {
     if (storeId) {
       filter.$or = [{ storeId: new Types.ObjectId(storeId) }, { storeId: null }];
     }
-    return this.categoryModel.find(filter).sort({ sort: 1 }).lean();
+    const rows = await this.categoryModel.find(filter).sort({ sort: 1 }).lean();
+    return rows.map((cat) => this.normalizeCategory(cat as Record<string, unknown>));
   }
 
   createCategory(tenantId: string, dto: CreateCategoryDto) {
@@ -39,7 +64,7 @@ export class MenuService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Category not found');
-    return updated;
+    return this.normalizeCategory(updated.toObject() as unknown as Record<string, unknown>);
   }
 
   async deleteCategory(tenantId: string, id: string) {
@@ -54,10 +79,10 @@ export class MenuService {
       { categoryId: category._id, tenantId: new Types.ObjectId(tenantId) },
       { isAvailable: false },
     );
-    return category;
+    return this.normalizeCategory(category.toObject() as unknown as Record<string, unknown>);
   }
 
-  listMenuItems(tenantId: string, storeId?: string, includeUnavailable = false) {
+  async listMenuItems(tenantId: string, storeId?: string, includeUnavailable = false) {
     const filter: Record<string, unknown> = {
       tenantId: new Types.ObjectId(tenantId),
     };
@@ -65,7 +90,8 @@ export class MenuService {
     if (storeId) {
       filter.$or = [{ storeId: new Types.ObjectId(storeId) }, { storeId: null }];
     }
-    return this.menuItemModel.find(filter).sort({ sort: 1 }).lean();
+    const rows = await this.menuItemModel.find(filter).sort({ sort: 1 }).lean();
+    return rows.map((item) => this.normalizeItem(item as Record<string, unknown>));
   }
 
   createMenuItem(tenantId: string, dto: CreateMenuItemDto) {
@@ -92,7 +118,7 @@ export class MenuService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Menu item not found');
-    return updated;
+    return this.normalizeItem(updated.toObject() as unknown as Record<string, unknown>);
   }
 
   async deleteMenuItem(tenantId: string, id: string) {
@@ -104,10 +130,16 @@ export class MenuService {
     return { deleted: true, id: item._id };
   }
 
-  getPublicMenu(tenantId: string, storeId: string) {
-    return Promise.all([
+  async getPublicMenu(tenantId: string, storeId: string, lang: 'zh' | 'en' = 'zh') {
+    const [categories, items] = await Promise.all([
       this.listCategories(tenantId, storeId),
       this.listMenuItems(tenantId, storeId),
-    ]).then(([categories, items]) => ({ categories, items }));
+    ]);
+
+    return {
+      lang,
+      categories: categories.map((cat) => this.withDisplayName(cat, lang)),
+      items: items.map((item) => this.withDisplayName(item, lang)),
+    };
   }
 }

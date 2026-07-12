@@ -21,11 +21,12 @@ export class PublicService {
     return table;
   }
 
-  async getMenuByToken(token: string) {
+  async getMenuByToken(token: string, lang: 'zh' | 'en' = 'zh') {
     const table = await this.resolveTable(token);
     const menu = await this.menuService.getPublicMenu(
       table.tenantId.toString(),
       table.storeId.toString(),
+      lang,
     );
     return {
       table: { code: table.code, id: table._id },

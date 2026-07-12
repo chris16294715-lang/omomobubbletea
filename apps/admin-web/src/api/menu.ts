@@ -1,8 +1,13 @@
 import { apiFetch } from './client';
 
+export interface I18nText {
+  zh: string;
+  en: string;
+}
+
 export interface Category {
   _id: string;
-  name: string;
+  name: I18nText;
   sort: number;
   isActive: boolean;
 }
@@ -10,25 +15,36 @@ export interface Category {
 export interface MenuItem {
   _id: string;
   categoryId: string;
-  name: string;
-  description?: string;
+  name: I18nText;
+  description?: I18nText;
   basePrice: number;
   isAvailable: boolean;
   sort: number;
+}
+
+export function formatI18n(text: I18nText) {
+  return `${text.zh} / ${text.en}`;
+}
+
+export function labelI18n(text: I18nText, lang: 'zh' | 'en' = 'zh') {
+  return lang === 'en' ? text.en || text.zh : text.zh || text.en;
 }
 
 export function listCategories() {
   return apiFetch<Category[]>('/admin/menu/categories?all=true');
 }
 
-export function createCategory(name: string, sort = 0) {
+export function createCategory(name: I18nText, sort = 0) {
   return apiFetch<Category>('/admin/menu/categories', {
     method: 'POST',
     body: JSON.stringify({ name, sort }),
   });
 }
 
-export function updateCategory(id: string, data: Partial<Pick<Category, 'name' | 'sort' | 'isActive'>>) {
+export function updateCategory(
+  id: string,
+  data: Partial<{ name: I18nText; sort: number; isActive: boolean }>,
+) {
   return apiFetch<Category>(`/admin/menu/categories/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
@@ -45,8 +61,8 @@ export function listMenuItems() {
 
 export function createMenuItem(data: {
   categoryId: string;
-  name: string;
-  description?: string;
+  name: I18nText;
+  description?: I18nText;
   basePrice: number;
   isAvailable?: boolean;
 }) {
@@ -60,8 +76,8 @@ export function updateMenuItem(
   id: string,
   data: Partial<{
     categoryId: string;
-    name: string;
-    description: string;
+    name: I18nText;
+    description: I18nText;
     basePrice: number;
     isAvailable: boolean;
     sort: number;
