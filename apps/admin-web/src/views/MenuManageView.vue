@@ -62,8 +62,21 @@
                 </div>
                 <div class="actions">
                   <button class="btn ghost" @click="openItemForm(item)">编辑</button>
-                  <button v-if="item.isAvailable" class="btn danger" @click="removeItem(item)">删除</button>
-                  <button v-else class="btn ghost" @click="restoreItem(item)">上架</button>
+                  <button
+                    v-if="!item.isAvailable"
+                    class="btn ghost"
+                    @click="toggleItemAvailable(item, true)"
+                  >
+                    上架
+                  </button>
+                  <button
+                    v-else
+                    class="btn ghost"
+                    @click="toggleItemAvailable(item, false)"
+                  >
+                    下架
+                  </button>
+                  <button class="btn danger" @click="removeItem(item)">删除</button>
                 </div>
               </li>
             </ul>
@@ -293,23 +306,23 @@ async function saveItem() {
 }
 
 async function removeItem(item: MenuItem) {
-  if (!confirm(`确定删除菜品「${item.name}」？`)) return;
+  if (!confirm(`确定永久删除菜品「${item.name}」？删除后不可恢复。`)) return;
   error.value = '';
   try {
     await deleteMenuItem(item._id);
-    await loadData();
+    items.value = items.value.filter((i) => i._id !== item._id);
   } catch (e) {
     error.value = e instanceof Error ? e.message : '删除失败';
   }
 }
 
-async function restoreItem(item: MenuItem) {
+async function toggleItemAvailable(item: MenuItem, isAvailable: boolean) {
   error.value = '';
   try {
-    await updateMenuItem(item._id, { isAvailable: true });
-    await loadData();
+    await updateMenuItem(item._id, { isAvailable });
+    item.isAvailable = isAvailable;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '上架失败';
+    error.value = e instanceof Error ? e.message : '操作失败';
   }
 }
 

@@ -74,7 +74,7 @@ export function updateMenuItem(
 }
 
 export function deleteMenuItem(id: string) {
-  return apiFetch<MenuItem>(`/admin/menu/items/${id}`, { method: 'DELETE' });
+  return apiFetch<{ deleted: boolean; id: string }>(`/admin/menu/items/${id}`, { method: 'DELETE' });
 }
 
 export function formatPrice(cents: number) {

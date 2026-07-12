@@ -96,13 +96,12 @@ export class MenuService {
   }
 
   async deleteMenuItem(tenantId: string, id: string) {
-    const item = await this.menuItemModel.findOneAndUpdate(
-      { _id: id, tenantId: new Types.ObjectId(tenantId) },
-      { isAvailable: false },
-      { new: true },
-    );
+    const item = await this.menuItemModel.findOneAndDelete({
+      _id: id,
+      tenantId: new Types.ObjectId(tenantId),
+    });
     if (!item) throw new NotFoundException('Menu item not found');
-    return item;
+    return { deleted: true, id: item._id };
   }
 
   getPublicMenu(tenantId: string, storeId: string) {
