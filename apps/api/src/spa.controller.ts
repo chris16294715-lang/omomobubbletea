@@ -7,7 +7,7 @@ const indexPath = join(__dirname, '..', 'public', 'index.html');
 
 @Controller()
 export class SpaController {
-  @Get(['', 'login', 'home'])
+  @Get(['', 'login', 'home', 'menu'])
   serve(@Res() res: Response) {
     if (!existsSync(indexPath)) {
       return res.status(404).json({

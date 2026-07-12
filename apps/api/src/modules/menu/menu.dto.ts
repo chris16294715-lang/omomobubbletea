@@ -60,6 +60,10 @@ export class CreateMenuItemDto {
 export class UpdateMenuItemDto {
   @IsOptional()
   @IsString()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @IsOptional()
@@ -69,6 +73,10 @@ export class UpdateMenuItemDto {
   @IsOptional()
   @IsNumber()
   basePrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  sort?: number;
 
   @IsOptional()
   @IsBoolean()

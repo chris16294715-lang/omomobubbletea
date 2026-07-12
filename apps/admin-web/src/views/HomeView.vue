@@ -1,48 +1,42 @@
 <template>
-  <div class="home-page">
-    <header class="topbar">
-      <div class="brand">
-        <span class="logo">🧋</span>
-        <div>
-          <strong>Bubble Tea SaaS</strong>
-          <small>管理后台</small>
-        </div>
-      </div>
-      <button class="logout-btn" @click="handleLogout">退出登录</button>
-    </header>
+  <AdminLayout subtitle="管理后台">
+    <section class="welcome-card">
+      <h1>你好，{{ user?.name }}</h1>
+      <p>欢迎进入奶茶店管理后台。</p>
+    </section>
 
-    <main class="content">
-      <section class="welcome-card">
-        <h1>你好，{{ user?.name }}</h1>
-        <p>你已成功登录，后续可在这里扩展菜单管理、报表等功能。</p>
-      </section>
+    <section v-if="canManageMenu" class="quick-actions">
+      <router-link to="/menu" class="action-card">
+        <span class="icon">📋</span>
+        <strong>菜单管理</strong>
+        <small>分类与菜品的添加、编辑、删除</small>
+      </router-link>
+    </section>
 
-      <section class="info-grid">
-        <article class="info-card">
-          <span class="label">角色</span>
-          <strong>{{ roleLabel }}</strong>
-        </article>
-        <article class="info-card">
-          <span class="label">邮箱</span>
-          <strong>{{ user?.email }}</strong>
-        </article>
-        <article class="info-card">
-          <span class="label">租户 ID</span>
-          <strong class="mono">{{ user?.tenantId }}</strong>
-        </article>
-      </section>
-    </main>
-  </div>
+    <section class="info-grid">
+      <article class="info-card">
+        <span class="label">角色</span>
+        <strong>{{ roleLabel }}</strong>
+      </article>
+      <article class="info-card">
+        <span class="label">邮箱</span>
+        <strong>{{ user?.email }}</strong>
+      </article>
+    </section>
+  </AdminLayout>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { clearSession, getSession } from '../api/auth';
+import AdminLayout from '../components/AdminLayout.vue';
+import { getSession } from '../api/auth';
 
-const router = useRouter();
 const session = getSession();
 const user = session?.user;
+
+const canManageMenu = computed(
+  () => user?.role === 'tenant_admin' || user?.role === 'manager',
+);
 
 const roleLabel = computed(() => {
   const map: Record<string, string> = {
@@ -52,67 +46,12 @@ const roleLabel = computed(() => {
   };
   return user ? map[user.role] ?? user.role : '';
 });
-
-function handleLogout() {
-  clearSession();
-  router.push('/login');
-}
 </script>
 
 <style scoped>
-.home-page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #faf6f0 0%, #f7f3ee 100%);
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  background: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid #eadfce;
-  backdrop-filter: blur(8px);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logo {
-  font-size: 28px;
-}
-
-.brand strong {
-  display: block;
-  font-size: 16px;
-}
-
-.brand small {
-  color: #8a7b6d;
-}
-
-.logout-btn {
-  border: 1px solid #dcc6ae;
-  background: white;
-  color: #6d4520;
-  border-radius: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-}
-
-.content {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 32px 24px 48px;
-  display: grid;
-  gap: 24px;
-}
-
 .welcome-card,
-.info-card {
+.info-card,
+.action-card {
   background: white;
   border-radius: 20px;
   border: 1px solid #eadfce;
@@ -121,6 +60,7 @@ function handleLogout() {
 
 .welcome-card {
   padding: 28px;
+  margin-bottom: 24px;
 }
 
 .welcome-card h1 {
@@ -132,9 +72,34 @@ function handleLogout() {
   color: #8a7b6d;
 }
 
+.quick-actions {
+  margin-bottom: 24px;
+}
+
+.action-card {
+  display: grid;
+  gap: 6px;
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+}
+
+.action-card .icon {
+  font-size: 28px;
+}
+
+.action-card small {
+  color: #8a7b6d;
+}
+
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
@@ -147,12 +112,6 @@ function handleLogout() {
 .label {
   color: #8a7b6d;
   font-size: 13px;
-}
-
-.mono {
-  font-family: ui-monospace, monospace;
-  font-size: 13px;
-  word-break: break-all;
 }
 
 @media (max-width: 760px) {

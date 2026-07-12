@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MenuService } from './menu.service';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -13,8 +13,12 @@ export class MenuAdminController {
 
   @Get('categories')
   @Roles('tenant_admin', 'manager')
-  listCategories(@CurrentUser() user: JwtPayload, @Query('storeId') storeId?: string) {
-    return this.menuService.listCategories(user.tenantId, storeId);
+  listCategories(
+    @CurrentUser() user: JwtPayload,
+    @Query('storeId') storeId?: string,
+    @Query('all') all?: string,
+  ) {
+    return this.menuService.listCategories(user.tenantId, storeId, all === 'true');
   }
 
   @Post('categories')
@@ -33,10 +37,20 @@ export class MenuAdminController {
     return this.menuService.updateCategory(user.tenantId, id, dto);
   }
 
+  @Delete('categories/:id')
+  @Roles('tenant_admin', 'manager')
+  deleteCategory(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.menuService.deleteCategory(user.tenantId, id);
+  }
+
   @Get('items')
   @Roles('tenant_admin', 'manager')
-  listItems(@CurrentUser() user: JwtPayload, @Query('storeId') storeId?: string) {
-    return this.menuService.listMenuItems(user.tenantId, storeId);
+  listItems(
+    @CurrentUser() user: JwtPayload,
+    @Query('storeId') storeId?: string,
+    @Query('all') all?: string,
+  ) {
+    return this.menuService.listMenuItems(user.tenantId, storeId, all === 'true');
   }
 
   @Post('items')
@@ -53,6 +67,12 @@ export class MenuAdminController {
     @Body() dto: UpdateMenuItemDto,
   ) {
     return this.menuService.updateMenuItem(user.tenantId, id, dto);
+  }
+
+  @Delete('items/:id')
+  @Roles('tenant_admin', 'manager')
+  deleteItem(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.menuService.deleteMenuItem(user.tenantId, id);
   }
 }
 

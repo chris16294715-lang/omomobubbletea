@@ -12,11 +12,11 @@ export class MenuService {
     @InjectModel(MenuItem.name) private menuItemModel: Model<MenuItemDocument>,
   ) {}
 
-  listCategories(tenantId: string, storeId?: string) {
+  listCategories(tenantId: string, storeId?: string, includeInactive = false) {
     const filter: Record<string, unknown> = {
       tenantId: new Types.ObjectId(tenantId),
-      isActive: true,
     };
+    if (!includeInactive) filter.isActive = true;
     if (storeId) {
       filter.$or = [{ storeId: new Types.ObjectId(storeId) }, { storeId: null }];
     }
@@ -42,11 +42,26 @@ export class MenuService {
     return updated;
   }
 
-  listMenuItems(tenantId: string, storeId?: string) {
+  async deleteCategory(tenantId: string, id: string) {
+    const category = await this.categoryModel.findOneAndUpdate(
+      { _id: id, tenantId: new Types.ObjectId(tenantId) },
+      { isActive: false },
+      { new: true },
+    );
+    if (!category) throw new NotFoundException('Category not found');
+
+    await this.menuItemModel.updateMany(
+      { categoryId: category._id, tenantId: new Types.ObjectId(tenantId) },
+      { isAvailable: false },
+    );
+    return category;
+  }
+
+  listMenuItems(tenantId: string, storeId?: string, includeUnavailable = false) {
     const filter: Record<string, unknown> = {
       tenantId: new Types.ObjectId(tenantId),
-      isAvailable: true,
     };
+    if (!includeUnavailable) filter.isAvailable = true;
     if (storeId) {
       filter.$or = [{ storeId: new Types.ObjectId(storeId) }, { storeId: null }];
     }
@@ -68,13 +83,26 @@ export class MenuService {
   }
 
   async updateMenuItem(tenantId: string, id: string, dto: UpdateMenuItemDto) {
+    const update: Record<string, unknown> = { ...dto };
+    if (dto.categoryId) update.categoryId = new Types.ObjectId(dto.categoryId);
+
     const updated = await this.menuItemModel.findOneAndUpdate(
       { _id: id, tenantId: new Types.ObjectId(tenantId) },
-      dto,
+      update,
       { new: true },
     );
     if (!updated) throw new NotFoundException('Menu item not found');
     return updated;
+  }
+
+  async deleteMenuItem(tenantId: string, id: string) {
+    const item = await this.menuItemModel.findOneAndUpdate(
+      { _id: id, tenantId: new Types.ObjectId(tenantId) },
+      { isAvailable: false },
+      { new: true },
+    );
+    if (!item) throw new NotFoundException('Menu item not found');
+    return item;
   }
 
   getPublicMenu(tenantId: string, storeId: string) {
