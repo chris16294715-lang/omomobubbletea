@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Order, OrderDocument } from '../../schemas/order.schema';
@@ -28,10 +28,36 @@ export class OrderService {
     return `A${String(Math.floor(Math.random() * 900) + 100)}`;
   }
 
+  private validatePayment(total: number, dto: CreateOrderDto) {
+    if (dto.source !== 'pos' || !dto.paymentMethod) return;
+
+    if (dto.paymentMethod === 'mixed') {
+      const cash = dto.cashAmount ?? 0;
+      const card = dto.cardAmount ?? 0;
+      if (cash <= 0 || card <= 0) {
+        throw new BadRequestException('混合支付时现金与刷卡金额均需大于 0');
+      }
+      if (cash + card !== total) {
+        throw new BadRequestException('现金与刷卡金额之和须等于订单总额');
+      }
+      return;
+    }
+
+    if (!['cash', 'card'].includes(dto.paymentMethod)) {
+      throw new BadRequestException('收银台仅支持现金、刷卡或混合支付');
+    }
+  }
+
   async create(tenantId: string, dto: CreateOrderDto, cashierId?: string) {
     const subtotal = this.calcSubtotal(dto.items);
     const isPos = dto.source === 'pos';
+    this.validatePayment(subtotal, dto);
     const orderNo = await this.generateOrderNo();
+
+    const paymentCash =
+      dto.paymentMethod === 'mixed' ? dto.cashAmount : dto.paymentMethod === 'cash' ? subtotal : undefined;
+    const paymentCard =
+      dto.paymentMethod === 'mixed' ? dto.cardAmount : dto.paymentMethod === 'card' ? subtotal : undefined;
 
     const order = await this.orderModel.create({
       tenantId: new Types.ObjectId(tenantId),
@@ -54,6 +80,8 @@ export class OrderService {
       status: isPos ? 'paid' : 'pending',
       paymentStatus: isPos ? 'paid' : 'unpaid',
       paymentMethod: dto.paymentMethod,
+      paymentCash,
+      paymentCard,
       cashierId: cashierId ? new Types.ObjectId(cashierId) : undefined,
       customerNote: dto.customerNote,
       pickupNo: this.generatePickupNo(),

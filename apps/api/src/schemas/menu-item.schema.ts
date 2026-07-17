@@ -14,6 +14,32 @@ export class MenuSpec {
 }
 
 @Schema({ _id: false })
+export class MenuToppingOption {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ default: 0 })
+  price: number;
+
+  @Prop({ default: 1 })
+  maxQty: number;
+}
+
+@Schema({ _id: false })
+export class MenuToppingCatalog {
+  @Prop({ type: I18nTextSchema, required: true })
+  name: I18nText;
+
+  /** single=组内单选, multiple=可多选及多份 */
+  @Prop({ default: 'multiple', enum: ['single', 'multiple'] })
+  selectionMode: 'single' | 'multiple';
+
+  @Prop({ type: [MenuToppingOption], default: [] })
+  options: MenuToppingOption[];
+}
+
+/** @deprecated 旧版扁平加料，读取时自动迁移为 toppingCatalogs */
+@Schema({ _id: false })
 export class MenuTopping {
   @Prop({ required: true })
   name: string;
@@ -51,6 +77,10 @@ export class MenuItem {
   @Prop({ type: [MenuSpec], default: [] })
   specs: MenuSpec[];
 
+  @Prop({ type: [MenuToppingCatalog], default: [] })
+  toppingCatalogs: MenuToppingCatalog[];
+
+  /** @deprecated 使用 toppingCatalogs */
   @Prop({ type: [MenuTopping], default: [] })
   toppings: MenuTopping[];
 

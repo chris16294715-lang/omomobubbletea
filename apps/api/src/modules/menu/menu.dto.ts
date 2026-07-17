@@ -64,6 +64,14 @@ export class CreateMenuItemDto {
   specs?: { name: string; priceDelta?: number }[];
 
   @IsOptional()
+  toppingCatalogs?: {
+    name: I18nTextDto;
+    selectionMode?: 'single' | 'multiple';
+    options?: { name: string; price?: number; maxQty?: number }[];
+  }[];
+
+  /** @deprecated 使用 toppingCatalogs */
+  @IsOptional()
   toppings?: { name: string; price?: number; maxQty?: number }[];
 
   @IsOptional()
@@ -97,4 +105,15 @@ export class UpdateMenuItemDto {
   @IsOptional()
   @IsBoolean()
   isAvailable?: boolean;
+
+  @IsOptional()
+  toppingCatalogs?: {
+    name: I18nTextDto;
+    selectionMode?: 'single' | 'multiple';
+    options?: { name: string; price?: number; maxQty?: number }[];
+  }[];
+
+  /** @deprecated 使用 toppingCatalogs */
+  @IsOptional()
+  toppings?: { name: string; price?: number; maxQty?: number }[];
 }

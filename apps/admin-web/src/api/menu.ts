@@ -12,12 +12,28 @@ export interface Category {
   isActive: boolean;
 }
 
+export interface MenuToppingOption {
+  name: string;
+  price: number;
+  maxQty: number;
+}
+
+export interface MenuToppingCatalog {
+  name: I18nText;
+  selectionMode?: 'single' | 'multiple';
+  options: MenuToppingOption[];
+}
+
+/** @deprecated 旧版扁平结构 */
+export interface MenuTopping extends MenuToppingOption {}
+
 export interface MenuItem {
   _id: string;
   categoryId: string;
   name: I18nText;
   description?: I18nText;
   basePrice: number;
+  toppingCatalogs?: MenuToppingCatalog[];
   isAvailable: boolean;
   sort: number;
 }
@@ -64,6 +80,7 @@ export function createMenuItem(data: {
   name: I18nText;
   description?: I18nText;
   basePrice: number;
+  toppingCatalogs?: MenuToppingCatalog[];
   isAvailable?: boolean;
 }) {
   return apiFetch<MenuItem>('/admin/menu/items', {
@@ -79,6 +96,7 @@ export function updateMenuItem(
     name: I18nText;
     description: I18nText;
     basePrice: number;
+    toppingCatalogs?: MenuToppingCatalog[];
     isAvailable: boolean;
     sort: number;
   }>,
@@ -93,10 +111,4 @@ export function deleteMenuItem(id: string) {
   return apiFetch<{ deleted: boolean; id: string }>(`/admin/menu/items/${id}`, { method: 'DELETE' });
 }
 
-export function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2);
-}
-
-export function parsePrice(yuan: string) {
-  return Math.round(Number(yuan) * 100);
-}
+export { formatPrice, formatMoney, parsePrice } from '../utils/currency';

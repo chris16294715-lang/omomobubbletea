@@ -58,8 +58,9 @@
                 <div>
                   <strong>{{ formatI18n(item.name) }}</strong>
                   <small>
-                    ¥{{ formatPrice(item.basePrice) }}
+                    {{ formatMoney(item.basePrice) }}
                     <span v-if="item.description"> · {{ formatI18n(item.description) }}</span>
+                    <span v-if="toppingSummary(item)">{{ toppingSummary(item) }}</span>
                     · {{ item.isAvailable ? '上架' : '下架' }}
                   </small>
                 </div>
@@ -89,74 +90,133 @@
     </div>
 
     <!-- Category modal -->
-    <div v-if="categoryForm.open" class="modal-mask" @click.self="categoryForm.open = false">
-      <div class="modal">
-        <h3>{{ categoryForm.id ? '编辑分类' : '添加分类' }}</h3>
-        <form @submit.prevent="saveCategory">
-          <label>
-            分类名称（中文）
-            <input v-model="categoryForm.nameZh" required placeholder="例如：经典奶茶" />
-          </label>
-          <label>
-            Category name (English)
-            <input v-model="categoryForm.nameEn" required placeholder="e.g. Classic Milk Tea" />
-          </label>
-          <label>
-            排序（数字越小越靠前）
-            <input v-model.number="categoryForm.sort" type="number" min="0" />
-          </label>
-          <div class="modal-actions">
-            <button type="button" class="btn ghost" @click="categoryForm.open = false">取消</button>
-            <button type="submit" class="btn primary" :disabled="saving">保存</button>
-          </div>
-        </form>
+    <Teleport to="body">
+      <div v-if="categoryForm.open" class="modal-mask" @click.self="categoryForm.open = false">
+        <div class="modal" role="dialog" aria-modal="true">
+          <h3 class="modal-title">{{ categoryForm.id ? '编辑分类' : '添加分类' }}</h3>
+          <form @submit.prevent="saveCategory">
+            <label>
+              分类名称（中文）
+              <input v-model="categoryForm.nameZh" required placeholder="例如：经典奶茶" />
+            </label>
+            <label>
+              Category name (English)
+              <input v-model="categoryForm.nameEn" required placeholder="e.g. Classic Milk Tea" />
+            </label>
+            <label>
+              排序（数字越小越靠前）
+              <input v-model.number="categoryForm.sort" type="number" min="0" />
+            </label>
+            <div class="modal-actions">
+              <button type="button" class="btn ghost" @click="categoryForm.open = false">取消</button>
+              <button type="submit" class="btn primary" :disabled="saving">保存</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Item modal -->
-    <div v-if="itemForm.open" class="modal-mask" @click.self="itemForm.open = false">
-      <div class="modal">
-        <h3>{{ itemForm.id ? '编辑菜品' : '添加菜品' }}</h3>
-        <form @submit.prevent="saveItem">
-          <label>
-            所属分类
-            <select v-model="itemForm.categoryId" required>
-              <option v-for="cat in activeCategories" :key="cat._id" :value="cat._id">
-                {{ formatI18n(cat.name) }}
-              </option>
-            </select>
-          </label>
-          <label>
-            菜品名称（中文）
-            <input v-model="itemForm.nameZh" required placeholder="例如：珍珠奶茶" />
-          </label>
-          <label>
-            Item name (English)
-            <input v-model="itemForm.nameEn" required placeholder="e.g. Bubble Milk Tea" />
-          </label>
-          <label>
-            描述（中文，可选）
-            <input v-model="itemForm.descriptionZh" placeholder="简短描述" />
-          </label>
-          <label>
-            Description (English, optional)
-            <input v-model="itemForm.descriptionEn" placeholder="Short description" />
-          </label>
-          <label>
-            价格（元）
-            <input v-model="itemForm.priceYuan" type="number" step="0.01" min="0" required />
-          </label>
-          <label class="checkbox">
-            <input v-model="itemForm.isAvailable" type="checkbox" />
-            上架销售
-          </label>
-          <div class="modal-actions">
-            <button type="button" class="btn ghost" @click="itemForm.open = false">取消</button>
-            <button type="submit" class="btn primary" :disabled="saving">保存</button>
+    <Teleport to="body">
+      <div v-if="itemForm.open" class="modal-mask" @click.self="itemForm.open = false">
+        <div class="modal modal-lg" role="dialog" aria-modal="true">
+          <h3 class="modal-title">{{ itemForm.id ? '编辑菜品' : '添加菜品' }}</h3>
+          <div class="modal-body">
+            <form @submit.prevent="saveItem">
+              <label>
+                所属分类
+                <select v-model="itemForm.categoryId" required>
+                  <option v-for="cat in activeCategories" :key="cat._id" :value="cat._id">
+                    {{ formatI18n(cat.name) }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                菜品名称（中文）
+                <input v-model="itemForm.nameZh" required placeholder="例如：珍珠奶茶" />
+              </label>
+              <label>
+                Item name (English)
+                <input v-model="itemForm.nameEn" required placeholder="e.g. Bubble Milk Tea" />
+              </label>
+              <label>
+                描述（中文，可选）
+                <input v-model="itemForm.descriptionZh" placeholder="简短描述" />
+              </label>
+              <label>
+                Description (English, optional)
+                <input v-model="itemForm.descriptionEn" placeholder="Short description" />
+              </label>
+              <label>
+                价格（€）
+                <input v-model="itemForm.priceEuro" type="number" step="0.01" min="0" required />
+              </label>
+              <label class="checkbox">
+                <input v-model="itemForm.isAvailable" type="checkbox" />
+                上架销售
+              </label>
+
+              <div class="topping-section">
+                <div class="topping-head">
+                  <strong>Topping Catalog（加料分组）</strong>
+                  <button type="button" class="btn ghost small" @click="addCatalog">+ 添加分组</button>
+                </div>
+                <p class="topping-hint">每个 Catalog 有独立名称；可选「单选」（如糖度）或「多选」（如加料，可叠加份数）</p>
+                <div v-if="!itemForm.toppingCatalogs.length" class="topping-empty">暂无加料分组，点击「添加分组」</div>
+
+                <div v-for="(cat, catIdx) in itemForm.toppingCatalogs" :key="catIdx" class="catalog-card">
+                  <div class="catalog-head">
+                    <strong>分组 {{ catIdx + 1 }}</strong>
+                    <button type="button" class="btn danger small" @click="removeCatalog(catIdx)">删除分组</button>
+                  </div>
+                  <div class="catalog-names">
+                    <label>
+                      名称（中文）
+                      <input v-model="cat.nameZh" placeholder="如：加料" required />
+                    </label>
+                    <label>
+                      Name (English)
+                      <input v-model="cat.nameEn" placeholder="e.g. Toppings" required />
+                    </label>
+                    <label>
+                      选择方式
+                      <select v-model="cat.selectionMode">
+                        <option value="multiple">多选（可叠加份数）</option>
+                        <option value="single">单选</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="catalog-options-head">
+                    <span>选项</span>
+                    <button type="button" class="btn ghost small" @click="addOption(catIdx)">+ 添加选项</button>
+                  </div>
+                  <div v-if="!cat.options.length" class="topping-empty">该分组暂无选项</div>
+                  <div v-for="(opt, optIdx) in cat.options" :key="optIdx" class="topping-row">
+                    <input v-model="opt.name" class="topping-name" placeholder="选项名，如：珍珠" required />
+                    <div class="topping-meta">
+                      <label class="topping-field">
+                        <span>价格 €</span>
+                        <input v-model="opt.priceEuro" type="number" step="0.01" min="0" required />
+                      </label>
+                      <label v-if="cat.selectionMode === 'multiple'" class="topping-field">
+                        <span>最多</span>
+                        <input v-model.number="opt.maxQty" type="number" min="1" max="9" title="最多份数" />
+                      </label>
+                      <button type="button" class="btn danger small" @click="removeOption(catIdx, optIdx)">删</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-actions">
+                <button type="button" class="btn ghost" @click="itemForm.open = false">取消</button>
+                <button type="submit" class="btn primary" :disabled="saving">保存</button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </AdminLayout>
 </template>
 
@@ -166,11 +226,13 @@ import AdminLayout from '../components/AdminLayout.vue';
 import {
   Category,
   MenuItem,
+  MenuToppingCatalog,
   createCategory,
   createMenuItem,
   deleteCategory,
   deleteMenuItem,
   formatI18n,
+  formatMoney,
   formatPrice,
   listCategories,
   listMenuItems,
@@ -215,8 +277,14 @@ const itemForm = reactive({
   nameEn: '',
   descriptionZh: '',
   descriptionEn: '',
-  priceYuan: '12.00',
+  priceEuro: '5.50',
   isAvailable: true,
+  toppingCatalogs: [] as {
+    nameZh: string;
+    nameEn: string;
+    selectionMode: 'single' | 'multiple';
+    options: { name: string; priceEuro: string; maxQty: number }[];
+  }[],
 });
 
 const activeCategories = computed(() => categories.value.filter((c) => c.isActive));
@@ -256,6 +324,7 @@ async function loadData() {
       categoryId: categoryIdOf(item),
       name: normalizeI18nField(item.name),
       description: item.description ? normalizeI18nField(item.description) : undefined,
+      toppingCatalogs: item.toppingCatalogs ?? [],
     }));
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败';
@@ -312,6 +381,55 @@ async function restoreCategory(cat: Category) {
   }
 }
 
+function toppingSummary(item: MenuItem) {
+  const catalogs = item.toppingCatalogs ?? [];
+  if (!catalogs.length) return '';
+  const optionCount = catalogs.reduce((n, c) => n + (c.options?.length ?? 0), 0);
+  return ` · Topping ${catalogs.length} 组 / ${optionCount} 项`;
+}
+
+function addCatalog() {
+  itemForm.toppingCatalogs.push({
+    nameZh: '',
+    nameEn: '',
+    selectionMode: 'multiple',
+    options: [{ name: '', priceEuro: '0.50', maxQty: 1 }],
+  });
+}
+
+function removeCatalog(index: number) {
+  itemForm.toppingCatalogs.splice(index, 1);
+}
+
+function addOption(catalogIndex: number) {
+  itemForm.toppingCatalogs[catalogIndex].options.push({
+    name: '',
+    priceEuro: '0.50',
+    maxQty: 1,
+  });
+}
+
+function removeOption(catalogIndex: number, optionIndex: number) {
+  itemForm.toppingCatalogs[catalogIndex].options.splice(optionIndex, 1);
+}
+
+function catalogsFromForm(): MenuToppingCatalog[] {
+  return itemForm.toppingCatalogs
+    .filter((cat) => cat.nameZh.trim() || cat.nameEn.trim())
+    .map((cat) => ({
+      name: { zh: cat.nameZh.trim(), en: cat.nameEn.trim() },
+      selectionMode: cat.selectionMode,
+      options: cat.options
+        .filter((opt) => opt.name.trim())
+        .map((opt) => ({
+          name: opt.name.trim(),
+          price: parsePrice(opt.priceEuro),
+          maxQty: Math.max(1, opt.maxQty || 1),
+        })),
+    }))
+    .filter((cat) => cat.options.length > 0);
+}
+
 function openItemForm(item?: MenuItem) {
   itemForm.open = true;
   itemForm.id = item?._id ?? '';
@@ -320,8 +438,18 @@ function openItemForm(item?: MenuItem) {
   itemForm.nameEn = item?.name.en ?? '';
   itemForm.descriptionZh = item?.description?.zh ?? '';
   itemForm.descriptionEn = item?.description?.en ?? '';
-  itemForm.priceYuan = item ? formatPrice(item.basePrice) : '12.00';
+  itemForm.priceEuro = item ? formatPrice(item.basePrice) : '5.50';
   itemForm.isAvailable = item?.isAvailable ?? true;
+  itemForm.toppingCatalogs = (item?.toppingCatalogs ?? []).map((cat) => ({
+    nameZh: cat.name.zh ?? '',
+    nameEn: cat.name.en ?? '',
+    selectionMode: cat.selectionMode === 'single' ? 'single' : 'multiple',
+    options: (cat.options ?? []).map((opt) => ({
+      name: opt.name,
+      priceEuro: formatPrice(opt.price),
+      maxQty: opt.maxQty ?? 1,
+    })),
+  }));
 }
 
 async function saveItem() {
@@ -340,7 +468,8 @@ async function saveItem() {
       categoryId: itemForm.categoryId,
       name,
       description,
-      basePrice: parsePrice(itemForm.priceYuan),
+      basePrice: parsePrice(itemForm.priceEuro),
+      toppingCatalogs: catalogsFromForm(),
       isAvailable: itemForm.isAvailable,
     };
     if (itemForm.id) {
@@ -418,13 +547,13 @@ onMounted(loadData);
   color: #6d4520;
 }
 
-.filter select,
-.modal input,
-.modal select {
+.filter select {
   border: 1px solid #dcc6ae;
   border-radius: 10px;
   padding: 10px 12px;
   background: #fffdfb;
+  width: 100%;
+  max-width: 280px;
 }
 
 .category-list,
@@ -520,20 +649,50 @@ onMounted(loadData);
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(47, 36, 25, 0.45);
-  display: grid;
-  place-items: center;
-  z-index: 100;
-  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
 .modal {
   background: white;
   border-radius: 16px;
-  padding: 24px;
-  width: min(420px, 100%);
-  display: grid;
-  gap: 16px;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-lg {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.modal-title {
+  padding: 20px 24px 12px;
+  font-size: 18px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #f0e4d6;
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 24px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal > form {
+  padding: 16px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal form {
@@ -546,6 +705,18 @@ onMounted(loadData);
   gap: 6px;
   font-size: 14px;
   color: #6d4520;
+  min-width: 0;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid #dcc6ae;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fffdfb;
 }
 
 .modal .checkbox {
@@ -554,10 +725,121 @@ onMounted(loadData);
   gap: 8px;
 }
 
+.modal .checkbox input {
+  width: auto;
+}
+
+.topping-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.catalog-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.catalog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.catalog-names {
+  display: grid;
+  grid-template-columns: 1fr 1fr 140px;
+  gap: 10px;
+}
+
+.catalog-options-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: #6d4520;
+}
+
+@media (max-width: 520px) {
+  .catalog-names {
+    grid-template-columns: 1fr;
+  }
+}
+
+.topping-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topping-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.topping-empty {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 8px 0;
+}
+
+.topping-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.topping-name {
+  width: 100%;
+}
+
+.topping-meta {
+  display: grid;
+  grid-template-columns: 1fr 72px auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.topping-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.topping-field span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.topping-field input {
+  width: 100%;
+}
+
+.btn.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  align-self: end;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 4px;
+  padding-top: 4px;
 }
 </style>

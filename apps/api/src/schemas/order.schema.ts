@@ -5,6 +5,9 @@ export type OrderDocument = HydratedDocument<Order>;
 
 @Schema({ _id: false })
 export class OrderItemTopping {
+  @Prop()
+  catalog?: string;
+
   @Prop({ required: true })
   name: string;
 
@@ -74,8 +77,16 @@ export class Order {
   })
   status: string;
 
-  @Prop({ enum: ['wechat', 'alipay', 'cash', 'card'] })
+  @Prop({ enum: ['wechat', 'alipay', 'cash', 'card', 'mixed'] })
   paymentMethod?: string;
+
+  /** 现金部分（分），混合支付时使用 */
+  @Prop()
+  paymentCash?: number;
+
+  /** 刷卡部分（分），混合支付时使用 */
+  @Prop()
+  paymentCard?: number;
 
   @Prop({ default: 'unpaid', enum: ['unpaid', 'paid', 'refunded'] })
   paymentStatus: string;
@@ -94,6 +105,9 @@ export class Order {
 
   @Prop()
   completedAt?: Date;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

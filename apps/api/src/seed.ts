@@ -34,14 +34,14 @@ async function seed() {
     name: '演示奶茶店',
     slug: 'demo-milk-tea',
     plan: 'basic',
-    settings: { currency: 'CNY' },
+    settings: { currency: 'EUR' },
   });
 
   const store = await storeModel.create({
     tenantId: tenant._id,
-    name: '中山路店',
-    address: '中山路 100 号',
-    phone: '13800000000',
+    name: 'Dublin Store',
+    address: 'Dublin, Ireland',
+    phone: '+353 1 000 0000',
   });
 
   const passwordHash = await bcrypt.hash('admin123', 10);
@@ -77,12 +77,40 @@ async function seed() {
     categoryId: category._id,
     name: { zh: '珍珠奶茶', en: 'Bubble Milk Tea' },
     description: { zh: '经典口味', en: 'Classic flavor' },
-    basePrice: 1200,
+    // 金额单位：欧分（€1.00 = 100）
+    basePrice: 550,
     specs: [
       { name: '中杯', priceDelta: 0 },
-      { name: '大杯', priceDelta: 300 },
+      { name: '大杯', priceDelta: 100 },
     ],
-    toppings: [{ name: '珍珠', price: 200, maxQty: 2 }],
+    toppingCatalogs: [
+      {
+        name: { zh: 'Size', en: 'Size' },
+        selectionMode: 'single',
+        options: [
+          { name: '小杯', price: 0, maxQty: 1 },
+          { name: '中杯', price: 50, maxQty: 1 },
+          { name: '大杯', price: 100, maxQty: 1 },
+        ],
+      },
+      {
+        name: { zh: '加料', en: 'Toppings' },
+        selectionMode: 'multiple',
+        options: [
+          { name: '珍珠', price: 100, maxQty: 2 },
+          { name: '椰果', price: 100, maxQty: 1 },
+        ],
+      },
+      {
+        name: { zh: '糖度', en: 'Sugar Level' },
+        selectionMode: 'single',
+        options: [
+          { name: '全糖', price: 0, maxQty: 1 },
+          { name: '半糖', price: 0, maxQty: 1 },
+          { name: '无糖', price: 0, maxQty: 1 },
+        ],
+      },
+    ],
     tags: ['热销'],
   });
 

@@ -5,11 +5,24 @@
       <p>欢迎进入奶茶店管理后台。</p>
     </section>
 
+    <section v-if="canUsePos" class="quick-actions">
+      <router-link to="/pos" class="action-card">
+        <span class="icon">🛒</span>
+        <strong>收银点单</strong>
+        <small>选择菜品、收款、查看今日订单</small>
+      </router-link>
+    </section>
+
     <section v-if="canManageMenu" class="quick-actions">
       <router-link to="/menu" class="action-card">
         <span class="icon">📋</span>
         <strong>菜单管理</strong>
         <small>分类与菜品的添加、编辑、删除</small>
+      </router-link>
+      <router-link to="/reports" class="action-card">
+        <span class="icon">📊</span>
+        <strong>销售报表</strong>
+        <small>按日期范围查看销售与支付方式统计</small>
       </router-link>
     </section>
 
@@ -36,6 +49,10 @@ const user = session?.user;
 
 const canManageMenu = computed(
   () => user?.role === 'tenant_admin' || user?.role === 'manager',
+);
+
+const canUsePos = computed(
+  () => user?.role === 'cashier' || user?.role === 'manager' || user?.role === 'tenant_admin',
 );
 
 const roleLabel = computed(() => {
@@ -74,6 +91,9 @@ const roleLabel = computed(() => {
 
 .quick-actions {
   margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .action-card {

@@ -45,6 +45,8 @@ async function bootstrap() {
       { path: 'login', method: RequestMethod.GET },
       { path: 'home', method: RequestMethod.GET },
       { path: 'menu', method: RequestMethod.GET },
+      { path: 'pos', method: RequestMethod.GET },
+      { path: 'reports', method: RequestMethod.GET },
     ],
   });
   app.useGlobalPipes(

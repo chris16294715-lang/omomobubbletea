@@ -6,6 +6,13 @@ import { MenuItem, MenuItemDocument } from '../../schemas/menu-item.schema';
 import { normalizeI18n, pickI18n } from '../../schemas/i18n.schema';
 import { CreateCategoryDto, CreateMenuItemDto, UpdateCategoryDto, UpdateMenuItemDto } from './menu.dto';
 
+type ToppingOptionRow = { name: string; price: number; maxQty: number };
+type ToppingCatalogRow = {
+  name: { zh: string; en: string };
+  selectionMode: 'single' | 'multiple';
+  options: ToppingOptionRow[];
+};
+
 @Injectable()
 export class MenuService {
   constructor(
@@ -17,22 +24,110 @@ export class MenuService {
     return { ...cat, name: normalizeI18n(cat.name) };
   }
 
+  private normalizeSelectionMode(value: unknown): 'single' | 'multiple' {
+    return value === 'single' ? 'single' : 'multiple';
+  }
+
+  private resolveToppingCatalogs(item: Record<string, unknown>): ToppingCatalogRow[] {
+    const catalogs = item.toppingCatalogs as ToppingCatalogRow[] | undefined;
+    if (catalogs?.length) {
+      return catalogs.map((cat) => ({
+        name: normalizeI18n(cat.name),
+        selectionMode: this.normalizeSelectionMode(cat.selectionMode),
+        options: (cat.options ?? []).map((opt) => ({
+          name: opt.name,
+          price: opt.price ?? 0,
+          maxQty: opt.maxQty ?? 1,
+        })),
+      }));
+    }
+
+    const legacy = item.toppings as ToppingOptionRow[] | undefined;
+    if (legacy?.length) {
+      return [
+        {
+          name: { zh: '加料', en: 'Toppings' },
+          selectionMode: 'multiple',
+          options: legacy.map((opt) => ({
+            name: opt.name,
+            price: opt.price ?? 0,
+            maxQty: opt.maxQty ?? 1,
+          })),
+        },
+      ];
+    }
+
+    return [];
+  }
+
   private normalizeItem<T extends Record<string, unknown>>(item: T) {
+    const toppingCatalogs = this.resolveToppingCatalogs(item);
+    const { toppings: _legacy, toppingCatalogs: _raw, ...rest } = item;
     return {
-      ...item,
+      ...rest,
       name: normalizeI18n(item.name),
       description: item.description ? normalizeI18n(item.description) : undefined,
+      toppingCatalogs,
     };
   }
 
-  private withDisplayName<T extends { name: unknown; description?: unknown }>(
-    row: T,
-    lang: 'zh' | 'en',
-  ) {
+  private prepareToppingCatalogsFromDto(
+    dto: Pick<CreateMenuItemDto, 'toppingCatalogs' | 'toppings'>,
+  ): ToppingCatalogRow[] {
+    if (dto.toppingCatalogs?.length) {
+      return dto.toppingCatalogs.map((cat) => ({
+        name: normalizeI18n(cat.name),
+        selectionMode: this.normalizeSelectionMode(cat.selectionMode),
+        options: (cat.options ?? [])
+          .filter((opt) => opt.name?.trim())
+          .map((opt) => ({
+            name: opt.name.trim(),
+            price: opt.price ?? 0,
+            maxQty: Math.max(1, opt.maxQty ?? 1),
+          })),
+      }));
+    }
+
+    if (dto.toppings?.length) {
+      return [
+        {
+          name: { zh: '加料', en: 'Toppings' },
+          selectionMode: 'multiple',
+          options: dto.toppings
+            .filter((opt) => opt.name?.trim())
+            .map((opt) => ({
+              name: opt.name.trim(),
+              price: opt.price ?? 0,
+              maxQty: Math.max(1, opt.maxQty ?? 1),
+            })),
+        },
+      ];
+    }
+
+    return [];
+  }
+
+  private withDisplayName<
+    T extends {
+      name: unknown;
+      description?: unknown;
+      toppingCatalogs?: ToppingCatalogRow[];
+    },
+  >(row: T, lang: 'zh' | 'en') {
     return {
       ...row,
       displayName: pickI18n(row.name, lang),
       displayDescription: row.description ? pickI18n(row.description, lang) : undefined,
+      toppingCatalogs: (row.toppingCatalogs ?? []).map((cat) => ({
+        name: cat.name,
+        displayName: pickI18n(cat.name, lang),
+        selectionMode: cat.selectionMode,
+        options: (cat.options ?? []).map((opt) => ({
+          ...opt,
+          displayName: opt.name,
+          catalog: pickI18n(cat.name, lang),
+        })),
+      })),
     };
   }
 
@@ -95,6 +190,7 @@ export class MenuService {
   }
 
   createMenuItem(tenantId: string, dto: CreateMenuItemDto) {
+    const toppingCatalogs = this.prepareToppingCatalogsFromDto(dto);
     return this.menuItemModel.create({
       tenantId: new Types.ObjectId(tenantId),
       storeId: dto.storeId ? new Types.ObjectId(dto.storeId) : undefined,
@@ -103,7 +199,8 @@ export class MenuService {
       description: dto.description,
       basePrice: dto.basePrice,
       specs: dto.specs ?? [],
-      toppings: dto.toppings ?? [],
+      toppingCatalogs,
+      toppings: [],
       isAvailable: dto.isAvailable ?? true,
     });
   }
@@ -111,6 +208,11 @@ export class MenuService {
   async updateMenuItem(tenantId: string, id: string, dto: UpdateMenuItemDto) {
     const update: Record<string, unknown> = { ...dto };
     if (dto.categoryId) update.categoryId = new Types.ObjectId(dto.categoryId);
+
+    if (dto.toppingCatalogs !== undefined || dto.toppings !== undefined) {
+      update.toppingCatalogs = this.prepareToppingCatalogsFromDto(dto);
+      update.toppings = [];
+    }
 
     const updated = await this.menuItemModel.findOneAndUpdate(
       { _id: id, tenantId: new Types.ObjectId(tenantId) },

@@ -22,7 +22,7 @@ export class OrderItemInputDto {
   spec?: string;
 
   @IsOptional()
-  toppings?: { name: string; qty?: number }[];
+  toppings?: { catalog?: string; name: string; qty?: number }[];
 
   @IsNumber()
   unitPrice: number;
@@ -57,8 +57,18 @@ export class CreateOrderDto {
   customerNote?: string;
 
   @IsOptional()
-  @IsEnum(['wechat', 'alipay', 'cash', 'card'])
+  @IsEnum(['wechat', 'alipay', 'cash', 'card', 'mixed'])
   paymentMethod?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cashAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cardAmount?: number;
 }
 
 export class UpdateOrderStatusDto {
@@ -66,6 +76,6 @@ export class UpdateOrderStatusDto {
   status: string;
 
   @IsOptional()
-  @IsEnum(['wechat', 'alipay', 'cash', 'card'])
+  @IsEnum(['wechat', 'alipay', 'cash', 'card', 'mixed'])
   paymentMethod?: string;
 }
